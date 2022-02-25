@@ -227,16 +227,21 @@ public class MapperMethod {
       MappedStatement ms = resolveMappedStatement(mapperInterface, methodName, declaringClass,
           configuration);
       if (ms == null) {
+        // 如果有 @Flush 注解，则标记为 FLUSH 类型
         if (method.getAnnotation(Flush.class) != null) {
           name = null;
           type = SqlCommandType.FLUSH;
         } else {
+          // 抛出 BindingException 异常，如果找不到 MappedStatement
+          //（开发中容易见到的错误）说明该方法上，没有对应的 SQL 声明。
           throw new BindingException("Invalid bound statement (not found): "
               + mapperInterface.getName() + "." + methodName);
         }
       } else {
+        // id=com.tian.mybatis.mapper.UserMapper.selectById
         name = ms.getId();
         type = ms.getSqlCommandType();
+        // 如果type=UNKNOWN
         if (type == SqlCommandType.UNKNOWN) {
           throw new BindingException("Unknown execution method for: " + name);
         }
@@ -253,7 +258,10 @@ public class MapperMethod {
 
     private MappedStatement resolveMappedStatement(Class<?> mapperInterface, String methodName,
         Class<?> declaringClass, Configuration configuration) {
+      // 获得编号
+      // com.tian.mybatis.mapper.UserMapper.selectById
       String statementId = mapperInterface.getName() + "." + methodName;
+      // 如果有，获得 MappedStatement 对象，并返回
       if (configuration.hasStatement(statementId)) {
         return configuration.getMappedStatement(statementId);
       } else if (mapperInterface.equals(declaringClass)) {

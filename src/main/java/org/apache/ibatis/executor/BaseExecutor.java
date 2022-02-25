@@ -131,7 +131,9 @@ public abstract class BaseExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // 1.根据具体传入的参数，动态地生成需要执行的SQL语句，用BoundSql对象表示
     BoundSql boundSql = ms.getBoundSql(parameter);
+    // 2.为当前的查询创建一个缓存Key
     CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);
     return query(ms, parameter, rowBounds, resultHandler, key, boundSql);
   }
@@ -153,6 +155,7 @@ public abstract class BaseExecutor implements Executor {
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 3.缓存中没有值，直接从数据库中读取数据
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
@@ -197,10 +200,15 @@ public abstract class BaseExecutor implements Executor {
       throw new ExecutorException("Executor was closed.");
     }
     CacheKey cacheKey = new CacheKey();
+    // 1.statementId
     cacheKey.update(ms.getId());
+    // 2. rowBounds.offset
     cacheKey.update(rowBounds.getOffset());
+    // 3. rowBounds.limit
     cacheKey.update(rowBounds.getLimit());
+    // 4. SQL语句
     cacheKey.update(boundSql.getSql());
+    // 5. 将每一个要传递给JDBC的参数值也更新到CacheKey中
     List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
     TypeHandlerRegistry typeHandlerRegistry = ms.getConfiguration().getTypeHandlerRegistry();
     // mimic DefaultParameterHandler logic
@@ -223,6 +231,7 @@ public abstract class BaseExecutor implements Executor {
     }
     if (configuration.getEnvironment() != null) {
       // issue #176
+      // 将每一个要传递给JDBC的参数值也更新到CacheKey中
       cacheKey.update(configuration.getEnvironment().getId());
     }
     return cacheKey;
@@ -320,10 +329,13 @@ public abstract class BaseExecutor implements Executor {
 
   private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
     List<E> list;
+    // 使用占位符的方式，先抢占一级缓存。
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
+      // 4. 执行查询，返回List 结果，然后   将查询的结果放入缓存之中
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
     } finally {
+      // 使用占位符的方式，先抢占一级缓存。
       localCache.removeObject(key);
     }
     localCache.putObject(key, list);

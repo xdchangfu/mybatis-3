@@ -73,10 +73,13 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <T> T selectOne(String statement, Object parameter) {
     // Popular vote was to return null on 0 results and throw exception on too many.
+    // 这是一种好的设计方法
+    // 不管是执行多条查询还是单条查询，都走selectList方法（重点）
     List<T> list = this.selectList(statement, parameter);
     if (list.size() == 1) {
       return list.get(0);
     } else if (list.size() > 1) {
+      // (开发中常见错误)方法定义的是返回一条数据，结果查出了多条数据，就会报这个异常
       throw new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: " + list.size());
     } else {
       return null;
@@ -147,7 +150,9 @@ public class DefaultSqlSession implements SqlSession {
 
   private <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
     try {
+      // 1.根据Statement Id，在 mybatis 配置对象Configuration中查找和配置文件相对应的 MappedStatement
       MappedStatement ms = configuration.getMappedStatement(statement);
+      // 2. 将查询任务委托给 MyBatis 的执行器 Executor
       return executor.query(ms, wrapCollection(parameter), rowBounds, handler);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

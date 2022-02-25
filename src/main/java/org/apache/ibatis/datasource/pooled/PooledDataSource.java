@@ -421,20 +421,25 @@ public class PooledDataSource implements DataSource {
       synchronized (state) {
         if (!state.idleConnections.isEmpty()) {
           // Pool has available connection
+          // 连接池中有空闲连接，取出第一个
           conn = state.idleConnections.remove(0);
           if (log.isDebugEnabled()) {
             log.debug("Checked out connection " + conn.getRealHashCode() + " from pool.");
           }
         } else {
           // Pool does not have available connection
+          // 连接池中没有空闲连接，则取当前正在使用的连接数小于最大限定值
           if (state.activeConnections.size() < poolMaximumActiveConnections) {
             // Can create new connection
+            // 创建一个新的connection对象
             conn = new PooledConnection(dataSource.getConnection(), this);
             if (log.isDebugEnabled()) {
               log.debug("Created connection " + conn.getRealHashCode() + ".");
             }
           } else {
             // Cannot create new connection
+            // Cannot create new connection 当活动连接池已满，不能创建时，取出活动连接池的第一个，即最先进入连接池的PooledConnection对象
+            // 计算它的校验时间，如果校验时间大于连接池规定的最大校验时间，则认为它已经过期了，利用这个PoolConnection内部的realConnection重新生成一个PooledConnection
             PooledConnection oldestActiveConnection = state.activeConnections.get(0);
             long longestCheckoutTime = oldestActiveConnection.getCheckoutTime();
             if (longestCheckoutTime > poolMaximumCheckoutTime) {
@@ -467,6 +472,7 @@ public class PooledDataSource implements DataSource {
               }
             } else {
               // Must wait
+              // 如果不能释放，则必须等待有
               try {
                 if (!countedWait) {
                   state.hadToWaitCount++;
@@ -484,6 +490,7 @@ public class PooledDataSource implements DataSource {
             }
           }
         }
+        // 如果获取PooledConnection成功，则更新其信息
         if (conn != null) {
           // ping to server and check the connection is valid or not
           if (conn.isValid()) {

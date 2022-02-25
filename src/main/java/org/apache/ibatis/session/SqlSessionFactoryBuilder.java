@@ -74,7 +74,10 @@ public class SqlSessionFactoryBuilder {
 
   public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
     try {
+      // 创建XMLConfigBuilder对象用来解析XML配置文件，生成Configuration对象
       XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
+      // 将XML配置文件内的信息解析成Java对象Configuration对象 parser.parse()
+      // 根据Configuration对象创建出SqlSessionFactory对象 build()
       return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
@@ -88,6 +91,7 @@ public class SqlSessionFactoryBuilder {
     }
   }
 
+  // MyBatis内部通过Configuration对象来创建SqlSessionFactory,用户也可以自己通过API构造好Configuration对象，调用此方法创建SqlSessionFactory
   public SqlSessionFactory build(Configuration config) {
     return new DefaultSqlSessionFactory(config);
   }

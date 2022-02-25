@@ -100,23 +100,36 @@ public class XMLConfigBuilder extends BaseBuilder {
     return configuration;
   }
 
+  /**
+    解析 "/configuration"节点下的子节点信息，然后将解析的结果设置到Configuration对象中
+  */
   private void parseConfiguration(XNode root) {
     try {
       // issue #117 read properties first
+      // 1.首先处理properties 节点
       propertiesElement(root.evalNode("properties"));
+      // 6.settings
       Properties settings = settingsAsProperties(root.evalNode("settings"));
       loadCustomVfs(settings);
       loadCustomLogImpl(settings);
+      // 2.处理typeAliases
       typeAliasesElement(root.evalNode("typeAliases"));
+      // 3.处理插件
       pluginElement(root.evalNode("plugins"));
+      // 4.处理objectFactory
       objectFactoryElement(root.evalNode("objectFactory"));
+      // 5.objectWrapperFactory
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      // 7.处理environments
       environmentsElement(root.evalNode("environments"));
+      // 8.database
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+      // 9. typeHandlers
       typeHandlerElement(root.evalNode("typeHandlers"));
+      // 10 mappers
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -273,6 +286,13 @@ public class XMLConfigBuilder extends BaseBuilder {
     configuration.setNullableOnForEach(booleanValueOf(props.getProperty("nullableOnForEach"), false));
   }
 
+
+  /**
+     解析environments节点，并将结果设置到Configuration对象中
+     注意：创建envronment时，如果SqlSessionFactoryBuilder指定了特定的环境（即数据源）；
+           则返回指定环境（数据源）的Environment对象，否则返回默认的Environment对象；
+           这种方式实现了MyBatis可以连接多数据源
+  */
   private void environmentsElement(XNode context) throws Exception {
     if (context != null) {
       if (environment == null) {
@@ -281,12 +301,16 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
         if (isSpecifiedEnvironment(id)) {
+          // 创建事务工厂 TransactionFactory
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+          // 创建数据源DataSource
           DataSource dataSource = dsFactory.getDataSource();
+          // 构造Environment对象
           Environment.Builder environmentBuilder = new Environment.Builder(id)
               .transactionFactory(txFactory)
               .dataSource(dataSource);
+          // 将创建的Envronment对象设置到configuration 对象中
           configuration.setEnvironment(environmentBuilder.build());
           break;
         }
@@ -317,6 +341,12 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (context != null) {
       String type = context.getStringAttribute("type");
       Properties props = context.getChildrenAsProperties();
+       /**
+             在Configuration初始化的时候，会通过以下语句，给JDBC和MANAGED对应的工厂类
+             typeAliasRegistry.registerAlias("JDBC", JdbcTransactionFactory.class);
+             typeAliasRegistry.registerAlias("MANAGED", ManagedTransactionFactory.class);
+             下述的resolveClass(type).newInstance()会创建对应的工厂实例
+        */
       TransactionFactory factory = (TransactionFactory) resolveClass(type).getDeclaredConstructor().newInstance();
       factory.setProperties(props);
       return factory;
