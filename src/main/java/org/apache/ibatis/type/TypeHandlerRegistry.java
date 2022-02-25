@@ -49,14 +49,29 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * 是 TypeHandler 的注册类，在其无参构造方法中维护了 JavaType、JdbcType 和 TypeHandler 的关系
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
 public final class TypeHandlerRegistry {
 
+  /**
+   * JdbcType - TypeHandler对象
+   * 用于将Jdbc类型转为Java类型
+   */
   private final Map<JdbcType, TypeHandler<?>> jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
+
+  /**
+   * JavaType - JdbcType - TypeHandler对象
+   * 用于将Java类型转为指定的Jdbc类型
+   */
   private final Map<Type, Map<JdbcType, TypeHandler<?>>> typeHandlerMap = new ConcurrentHashMap<>();
   private final TypeHandler<Object> unknownTypeHandler;
+
+  /**
+   * TypeHandler类型 - TypeHandler对象
+   * 注册所有的TypeHandler类型
+   */
   private final Map<Class<?>, TypeHandler<?>> allTypeHandlersMap = new HashMap<>();
 
   private static final Map<JdbcType, TypeHandler<?>> NULL_TYPE_HANDLER_MAP = Collections.emptyMap();

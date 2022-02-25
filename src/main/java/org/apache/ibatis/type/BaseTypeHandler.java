@@ -24,6 +24,10 @@ import org.apache.ibatis.executor.result.ResultMapException;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * 此类实现了 TypeHandler 接口
+ * 接口中定义了 1 个向 PreparedStatement 对象中设置参数的方法和 3 个从结果集中取值的方法
+ * 针对 null 和异常处理做了封装
+ * 但是具体逻辑封装成 4 个抽象方法仍交由相应的类型转换器子类实现
  * The base {@link TypeHandler} for references a generic type.
  * <p>
  * Important: Since 3.5.0, This class never call the {@link ResultSet#wasNull()} and

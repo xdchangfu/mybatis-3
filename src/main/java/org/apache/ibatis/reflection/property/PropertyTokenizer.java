@@ -18,6 +18,7 @@ package org.apache.ibatis.reflection.property;
 import java.util.Iterator;
 
 /**
+ * 针对映射文件表达式进行解析和 Java 对象的反射赋值
  * @author Clinton Begin
  */
 public class PropertyTokenizer implements Iterator<PropertyTokenizer> {
@@ -59,11 +60,20 @@ public class PropertyTokenizer implements Iterator<PropertyTokenizer> {
     return children;
   }
 
+  /**
+   * 是否有children表达式继续迭代
+   *
+   * @return
+   */
   @Override
   public boolean hasNext() {
     return children != null;
   }
 
+  /**
+   * 分解出的 . 分隔符的 children 表达式可以继续迭代
+   * @return
+   */
   @Override
   public PropertyTokenizer next() {
     return new PropertyTokenizer(children);

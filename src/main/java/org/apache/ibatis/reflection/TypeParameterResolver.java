@@ -26,6 +26,7 @@ import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 
 /**
+ * 针对 Java-Type 体系的多种实现，解析指定类中的字段、方法返回值或方法参数的类型
  * @author Iwao AVE!
  */
 public class TypeParameterResolver {
@@ -83,14 +84,26 @@ public class TypeParameterResolver {
     return result;
   }
 
+  /**
+   * 获取类型信息
+   *
+   * @param type 根据是否有泛型信息签名选择传入泛型类型或简单类型
+   * @param srcType 引用字段/方法的类（可能是子类，字段和方法在父类声明）
+   * @param declaringClass 字段/方法声明的类
+   * @return
+   */
   private static Type resolveType(Type type, Type srcType, Class<?> declaringClass) {
     if (type instanceof TypeVariable) {
+      // 泛型类型变量，如：List<T> 中的 T
       return resolveTypeVar((TypeVariable<?>) type, srcType, declaringClass);
     } else if (type instanceof ParameterizedType) {
+      // 泛型类型，如：List<String>
       return resolveParameterizedType((ParameterizedType) type, srcType, declaringClass);
     } else if (type instanceof GenericArrayType) {
+      // TypeVariable/ParameterizedType 数组类型
       return resolveGenericArrayType((GenericArrayType) type, srcType, declaringClass);
     } else {
+      // 原始类型，直接返回
       return type;
     }
   }
@@ -156,28 +169,36 @@ public class TypeParameterResolver {
     Type result;
     Class<?> clazz;
     if (srcType instanceof Class) {
+      // 原始类型
       clazz = (Class<?>) srcType;
     } else if (srcType instanceof ParameterizedType) {
+      // 泛型类型，如 TestObj<String>
       ParameterizedType parameterizedType = (ParameterizedType) srcType;
+      // 取原始类型TestObj
       clazz = (Class<?>) parameterizedType.getRawType();
     } else {
       throw new IllegalArgumentException("The 2nd arg must be Class or ParameterizedType, but was: " + srcType.getClass());
     }
 
     if (clazz == declaringClass) {
+      // 字段就是在当前引用类中声明的
       Type[] bounds = typeVar.getBounds();
       if (bounds.length > 0) {
+        // 返回泛型类型变量上界，如：T extends String，则返回String
         return bounds[0];
       }
+      // 没有上界返回Object
       return Object.class;
     }
 
+    // 字段/方法在父类中声明，递归查找父类泛型
     Type superclass = clazz.getGenericSuperclass();
     result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superclass);
     if (result != null) {
       return result;
     }
 
+    // 递归泛型接口
     Type[] superInterfaces = clazz.getGenericInterfaces();
     for (Type superInterface : superInterfaces) {
       result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superInterface);
@@ -190,23 +211,30 @@ public class TypeParameterResolver {
 
   private static Type scanSuperTypes(TypeVariable<?> typeVar, Type srcType, Class<?> declaringClass, Class<?> clazz, Type superclass) {
     if (superclass instanceof ParameterizedType) {
+      // 父类是泛型类型
       ParameterizedType parentAsType = (ParameterizedType) superclass;
       Class<?> parentAsClass = (Class<?>) parentAsType.getRawType();
+      // 父类中的泛型类型变量集合
       TypeVariable<?>[] parentTypeVars = parentAsClass.getTypeParameters();
       if (srcType instanceof ParameterizedType) {
+        // 子类可能对父类泛型变量做过替换，使用替换后的类型
         parentAsType = translateParentTypeVars((ParameterizedType) srcType, clazz, parentAsType);
       }
       if (declaringClass == parentAsClass) {
+        // 字段/方法在当前父类中声明
         for (int i = 0; i < parentTypeVars.length; i++) {
           if (typeVar.equals(parentTypeVars[i])) {
+            // 使用变量对应位置的真正类型（可能已经被替换），如父类 A<T>，子类 B extends A<String>，则返回String
             return parentAsType.getActualTypeArguments()[i];
           }
         }
       }
+      // 字段/方法声明的类是当前父类的父类，继续递归
       if (declaringClass.isAssignableFrom(parentAsClass)) {
         return resolveTypeVar(typeVar, parentAsType, declaringClass);
       }
     } else if (superclass instanceof Class && declaringClass.isAssignableFrom((Class<?>) superclass)) {
+      // 父类是原始类型，继续递归父类
       return resolveTypeVar(typeVar, superclass, declaringClass);
     }
     return null;

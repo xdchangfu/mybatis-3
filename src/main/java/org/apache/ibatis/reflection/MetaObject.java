@@ -28,6 +28,8 @@ import org.apache.ibatis.reflection.wrapper.ObjectWrapper;
 import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
 
 /**
+ * 关注的是对象的信息
+ * 对原始对象进行封装，将对象操作委托给 ObjectWrapper 处理
  * @author Clinton Begin
  */
 public class MetaObject {
@@ -44,6 +46,7 @@ public class MetaObject {
     this.objectWrapperFactory = objectWrapperFactory;
     this.reflectorFactory = reflectorFactory;
 
+    // 根据传入object类型不同，指定不同的wrapper
     if (object instanceof ObjectWrapper) {
       this.objectWrapper = (ObjectWrapper) object;
     } else if (objectWrapperFactory.hasWrapperFor(object)) {
@@ -112,6 +115,7 @@ public class MetaObject {
   public Object getValue(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
+      // 如果表达式仍可迭代，递归寻找字段对应的对象
       MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
       if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
         return null;
@@ -119,6 +123,7 @@ public class MetaObject {
         return metaValue.getValue(prop.getChildren());
       }
     } else {
+      // 字段解析完成
       return objectWrapper.get(prop);
     }
   }

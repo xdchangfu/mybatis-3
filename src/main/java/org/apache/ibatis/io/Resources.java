@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 
 /**
+ * 用于工具加载，其底层是通过 ClassLoaderWrapper 实现的
  * A class to simplify access to resources through the classloader.
  *
  * @author Clinton Begin

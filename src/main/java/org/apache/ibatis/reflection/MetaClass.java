@@ -27,6 +27,8 @@ import org.apache.ibatis.reflection.invoker.MethodInvoker;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ * 关注类信息
+ * 依赖 PropertyTokenizer 和 Reflector 查找表达式是否可以匹配 Java 对象中的字段，以及对应字段是否有 getter/setter 方法
  * @author Clinton Begin
  */
 public class MetaClass {
@@ -168,17 +170,29 @@ public class MetaClass {
     return reflector.getSetInvoker(name);
   }
 
+  /**
+   * 验证传入的表达式，是否存在指定的字段
+   *
+   * @param name
+   * @param builder
+   * @return
+   */
   private StringBuilder buildProperty(String name, StringBuilder builder) {
+    // 映射文件表达式迭代器
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
+      // 复杂表达式，如name = items[0].name，则prop.getName() = items
       String propertyName = reflector.findPropertyName(prop.getName());
       if (propertyName != null) {
         builder.append(propertyName);
         builder.append(".");
+        // 加载内嵌字段类型对应的MetaClass
         MetaClass metaProp = metaClassForProperty(propertyName);
+        // 迭代子字段
         metaProp.buildProperty(prop.getChildren(), builder);
       }
     } else {
+      // 非复杂表达式，获取字段名，如：userid->userId
       String propertyName = reflector.findPropertyName(name);
       if (propertyName != null) {
         builder.append(propertyName);

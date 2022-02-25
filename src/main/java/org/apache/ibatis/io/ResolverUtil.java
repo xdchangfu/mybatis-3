@@ -231,6 +231,7 @@ public class ResolverUtil<T> {
   }
 
   /**
+   * 用于按条件加载指定包下的类
    * Scans for classes starting at the package provided and descending into subpackages.
    * Each class is offered up to the Test as it is discovered, and if the Test returns
    * true the class is retained.  Accumulated classes can be fetched by calling
@@ -243,12 +244,15 @@ public class ResolverUtil<T> {
    * @return the resolver util
    */
   public ResolverUtil<T> find(Test test, String packageName) {
+    // 包名.替换为/
     String path = getPackagePath(packageName);
 
     try {
+      // 虚拟文件系统加载文件路径
       List<String> children = VFS.getInstance().list(path);
       for (String child : children) {
         if (child.endsWith(".class")) {
+          // 如果指定class文件符合条件，加入容器
           addIfMatching(test, child);
         }
       }

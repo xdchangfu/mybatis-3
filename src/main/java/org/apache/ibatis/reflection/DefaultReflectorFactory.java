@@ -20,8 +20,19 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.ibatis.util.MapUtil;
 
+/**
+ * 默认的反射信息创建工厂
+ */
 public class DefaultReflectorFactory implements ReflectorFactory {
+
+  /**
+   * 是否缓存Reflector类信息
+   */
   private boolean classCacheEnabled = true;
+
+  /**
+   * Reflector缓存容器
+   */
   private final ConcurrentMap<Class<?>, Reflector> reflectorMap = new ConcurrentHashMap<>();
 
   public DefaultReflectorFactory() {
@@ -37,10 +48,17 @@ public class DefaultReflectorFactory implements ReflectorFactory {
     this.classCacheEnabled = classCacheEnabled;
   }
 
+  /**
+   * 获取类的Reflector信息
+   *
+   * @param type
+   * @return
+   */
   @Override
   public Reflector findForClass(Class<?> type) {
     if (classCacheEnabled) {
       // synchronized (type) removed see issue #461
+      // 如果缓存Reflector信息，放入缓存容器
       return MapUtil.computeIfAbsent(reflectorMap, type, Reflector::new);
     } else {
       return new Reflector(type);

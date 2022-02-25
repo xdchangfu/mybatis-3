@@ -22,6 +22,7 @@ import org.apache.ibatis.reflection.factory.ObjectFactory;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ * 对象包装类，封装对象的读取和赋值等操作
  * @author Clinton Begin
  */
 public interface ObjectWrapper {
